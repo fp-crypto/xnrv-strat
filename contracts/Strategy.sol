@@ -19,9 +19,9 @@ import {
 import "@openzeppelin/contracts/math/Math.sol";
 
 interface IXNrv is IERC20 {
-    function enter(uint256 _amount) external payable;
+    function enter(uint256 _amount) external;
 
-    function leave(uint256 _share) external payable;
+    function leave(uint256 _share) external;
 }
 
 interface INrvMastermind {
