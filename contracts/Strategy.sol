@@ -45,6 +45,11 @@ interface INrvMastermind {
         external
         view
         returns (uint256, uint256);
+
+    function pendingNerve(uint256 _pid, address _user)
+        external
+        view
+        returns (uint256);
 }
 
 contract Strategy is BaseStrategy {
@@ -74,6 +79,10 @@ contract Strategy is BaseStrategy {
                 .balanceOf(address(this))
                 .add(xNrv.balanceOf(address(this)))
                 .add(deposited);
+    }
+
+    function pendingReward() public view returns (uint256) {
+        return mastermind.pendingNerve(pid, address(this));
     }
 
     function prepareReturn(uint256 _debtOutstanding)
@@ -153,16 +162,14 @@ contract Strategy is BaseStrategy {
             }
             if (deposited > 0) {
                 mastermind.withdraw(pid, amountToFree);
-                xNrv.leave(amountToFree);
+                xNrv.leave(xNrv.balanceOf(address(this)));
             }
 
-            _liquidatedAmount = want.balanceOf(address(this));
+            _liquidatedAmount = Math.min(_amountNeeded, want.balanceOf(address(this)));
         } else {
             _liquidatedAmount = _amountNeeded;
         }
     }
-
-    // NOTE: Can override `tendTrigger` and `harvestTrigger` if necessary
 
     function prepareMigration(address _newStrategy) internal override {
         liquidatePosition(uint256(-1)); //withdraw all. does not matter if we ask for too much
@@ -172,19 +179,6 @@ contract Strategy is BaseStrategy {
         mastermind.emergencyWithdraw(_pid);
     }
 
-    // Override this to add all tokens/tokenized positions this contract manages
-    // on a *persistent* basis (e.g. not just for swapping back to want ephemerally)
-    // NOTE: Do *not* include `want`, already included in `sweep` below
-    //
-    // Example:
-    //
-    //    function protectedTokens() internal override view returns (address[] memory) {
-    //      address[] memory protected = new address[](3);
-    //      protected[0] = tokenA;
-    //      protected[1] = tokenB;
-    //      protected[2] = tokenC;
-    //      return protected;
-    //    }
     function protectedTokens()
         internal
         view

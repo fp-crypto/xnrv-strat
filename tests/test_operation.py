@@ -4,7 +4,7 @@ import pytest
 
 
 def test_operation(
-    accounts, token, vault, strategy, user, strategist, amount, RELATIVE_APPROX
+    accounts, token, vault, strategy, user, strategist, amount, RELATIVE_APPROX, chain
 ):
     # Deposit to the vault
     user_balance_before = token.balanceOf(user)
@@ -18,6 +18,9 @@ def test_operation(
 
     # tend()
     strategy.tend()
+
+    chain.sleep(60 * 60 * 2)
+    chain.mine(1)
 
     # withdrawal
     vault.withdraw({"from": user})
