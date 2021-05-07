@@ -55,9 +55,12 @@ contract Strategy is BaseStrategy {
     IXNrv xNrv = IXNrv(address(0x15B9462d4Eb94222a7506Bc7A25FB27a2359291e));
     INrvMastermind mastermind =
         INrvMastermind(address(0x2EBe8CDbCB5fB8564bC45999DAb8DA264E31f24E));
-    uint256 xNrvPid = 2;
+    uint256 pid = 2;
 
-    constructor(address _vault) public BaseStrategy(_vault) {}
+    constructor(address _vault) public BaseStrategy(_vault) {
+        IERC20(want).safeApprove(address(xNrv), type(uint256).max);
+        IERC20(xNrv).safeApprove(address(mastermind), type(uint256).max);
+    }
 
     function name() external view override returns (string memory) {
         // Add your own name here, suggestion e.g. "StrategyCreamYFI"
@@ -65,7 +68,12 @@ contract Strategy is BaseStrategy {
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
-        return want.balanceOf(address(this)).add(xNrv.balanceOf(address(this)));
+        (uint256 deposited, ) = mastermind.userInfo(pid, address(this));
+        return
+            want
+                .balanceOf(address(this))
+                .add(xNrv.balanceOf(address(this)))
+                .add(deposited);
     }
 
     function prepareReturn(uint256 _debtOutstanding)
@@ -77,7 +85,7 @@ contract Strategy is BaseStrategy {
             uint256 _debtPayment
         )
     {
-        mastermind.deposit(xNrvPid, 0);
+        mastermind.deposit(pid, 0);
 
         uint256 assets = estimatedTotalAssets();
         uint256 wantBal = want.balanceOf(address(this));
@@ -126,7 +134,7 @@ contract Strategy is BaseStrategy {
 
         uint256 xNrvBalance = xNrv.balanceOf(address(this));
         if (xNrvBalance > 0) {
-            mastermind.deposit(xNrvPid, xNrvBalance);
+            mastermind.deposit(pid, xNrvBalance);
         }
     }
 
@@ -139,12 +147,12 @@ contract Strategy is BaseStrategy {
         if (_amountNeeded > totalAssets) {
             uint256 amountToFree = _amountNeeded.sub(totalAssets);
 
-            (uint256 deposited, ) = mastermind.userInfo(xNrvPid, address(this));
+            (uint256 deposited, ) = mastermind.userInfo(pid, address(this));
             if (deposited < amountToFree) {
                 amountToFree = deposited;
             }
             if (deposited > 0) {
-                mastermind.withdraw(xNrvPid, amountToFree);
+                mastermind.withdraw(pid, amountToFree);
                 xNrv.leave(amountToFree);
             }
 
