@@ -19,9 +19,6 @@ def test_operation(
     # tend()
     strategy.tend()
 
-    chain.sleep(60 * 60 * 2)
-    chain.mine(1)
-
     # withdrawal
     vault.withdraw({"from": user})
     assert (
@@ -56,16 +53,19 @@ def test_profitable_harvest(
     strategy.harvest()
     assert pytest.approx(strategy.estimatedTotalAssets(), rel=RELATIVE_APPROX) == amount
 
-    # TODO: Add some code before harvest #2 to simulate earning yield
+    chain.sleep(60 * 60 * 10)
+    chain.mine(1000)
+
+    before_pps = vault.pricePerShare()
+    assert strategy.pendingReward() > 0
 
     # Harvest 2: Realize profit
     strategy.harvest()
     chain.sleep(3600 * 6)  # 6 hrs needed for profits to unlock
     chain.mine(1)
     profit = token.balanceOf(vault.address)  # Profits go to vault
-    # TODO: Uncomment the lines below
-    # assert token.balanceOf(strategy) + profit > amount
-    # assert vault.pricePerShare() > before_pps
+    assert strategy.estimatedTotalAssets() + profit > amount
+    assert vault.pricePerShare() > before_pps
 
 
 def test_change_debt(
@@ -84,14 +84,12 @@ def test_change_debt(
     strategy.harvest()
     assert pytest.approx(strategy.estimatedTotalAssets(), rel=RELATIVE_APPROX) == amount
 
-    # In order to pass this tests, you will need to implement prepareReturn.
-    # TODO: uncomment the following lines.
-    # vault.updateStrategyDebtRatio(strategy.address, 5_000, {"from": gov})
-    # strategy.harvest()
-    # assert pytest.approx(strategy.estimatedTotalAssets(), rel=RELATIVE_APPROX) == half
+    vault.updateStrategyDebtRatio(strategy.address, 5_000, {"from": gov})
+    strategy.harvest()
+    assert pytest.approx(strategy.estimatedTotalAssets(), rel=RELATIVE_APPROX) == half
 
 
-def test_sweep(gov, vault, strategy, token, user, amount, weth, weth_amout):
+def test_sweep(gov, vault, strategy, token, user, whale, amount, weth, weth_amout):
     # Strategy want token doesn't work
     token.transfer(strategy, amount, {"from": user})
     assert token.address == strategy.want()
@@ -109,7 +107,7 @@ def test_sweep(gov, vault, strategy, token, user, amount, weth, weth_amout):
     #     strategy.sweep(strategy.protectedToken(), {"from": gov})
 
     before_balance = weth.balanceOf(gov)
-    weth.transfer(strategy, weth_amout, {"from": user})
+    weth.transfer(strategy, weth_amout, {"from": whale})
     assert weth.address != strategy.want()
     assert weth.balanceOf(user) == 0
     strategy.sweep(weth, {"from": gov})

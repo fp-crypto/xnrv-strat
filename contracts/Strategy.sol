@@ -165,7 +165,10 @@ contract Strategy is BaseStrategy {
                 xNrv.leave(xNrv.balanceOf(address(this)));
             }
 
-            _liquidatedAmount = Math.min(_amountNeeded, want.balanceOf(address(this)));
+            _liquidatedAmount = Math.min(
+                _amountNeeded,
+                want.balanceOf(address(this))
+            );
         } else {
             _liquidatedAmount = _amountNeeded;
         }

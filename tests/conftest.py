@@ -9,6 +9,11 @@ def gov(accounts):
 
 
 @pytest.fixture
+def whale(accounts):
+    yield accounts.at("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", force=True)
+
+
+@pytest.fixture
 def user(accounts):
     yield accounts[0]
 
@@ -71,11 +76,12 @@ def strategy(strategist, keeper, vault, Strategy, gov):
     vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1_000, {"from": gov})
     yield strategy
 
- 
+
 @pytest.fixture
 def weth():
     token_address = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
     yield Contract(token_address)
+
 
 @pytest.fixture
 def weth_amout(gov, weth):
