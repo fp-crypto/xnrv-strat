@@ -1,5 +1,5 @@
 import brownie
-from brownie import Contract
+from brownie import Contract, Wei
 import pytest
 
 
@@ -49,20 +49,22 @@ def test_profitable_harvest(
     vault.deposit(amount, {"from": user})
     assert token.balanceOf(vault.address) == amount
 
+    before_pps = vault.pricePerShare()
+    assert before_pps == Wei("1 ether")
     # Harvest 1: Send funds through the strategy
     strategy.harvest()
     assert pytest.approx(strategy.estimatedTotalAssets(), rel=RELATIVE_APPROX) == amount
 
     chain.sleep(60 * 60 * 10)
-    chain.mine(1000)
+    chain.mine(100)
 
-    before_pps = vault.pricePerShare()
     assert strategy.pendingReward() > 0
 
     # Harvest 2: Realize profit
     strategy.harvest()
     chain.sleep(3600 * 6)  # 6 hrs needed for profits to unlock
     chain.mine(1)
+
     profit = token.balanceOf(vault.address)  # Profits go to vault
     assert strategy.estimatedTotalAssets() + profit > amount
     assert vault.pricePerShare() > before_pps

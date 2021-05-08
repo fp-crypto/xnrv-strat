@@ -66,6 +66,7 @@ def vault(pm, gov, rewards, guardian, management, token):
     vault.initialize(token, gov, rewards, "", "", guardian)
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     vault.setManagement(management, {"from": gov})
+    vault.setManagementFee(0, {"from": gov})
     yield vault
 
 
@@ -84,10 +85,15 @@ def weth():
 
 
 @pytest.fixture
-def weth_amout(gov, weth):
-    weth_amout = 10 ** weth.decimals()
-    gov.transfer(weth, weth_amout)
-    yield weth_amout
+def weth_amout(gov, weth, whale):
+    amout = 10 ** weth.decimals()
+    weth.transfer(gov, amout, {"from": whale})
+    yield amout
+
+
+@pytest.fixture
+def nrv_whale(accounts):
+    yield accounts.at("0x319f1843a9d5e6532f7f18a9d90b2e9eaf5730ea", True)
 
 
 @pytest.fixture(scope="session")
